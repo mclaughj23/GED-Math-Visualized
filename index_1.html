@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GED Math Visualized - 38 Topics</title>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{background:#1c1c1c;min-height:100vh;font-family:system-ui,sans-serif}
+        #root{min-height:100vh}
+        .ld{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;color:#58c4dd}
+        .sp{width:50px;height:50px;border:3px solid #333;border-top-color:#58c4dd;border-radius:50%;animation:spin 1s linear infinite}
+        @keyframes spin{to{transform:rotate(360deg)}}
+    </style>
+</head>
+<body>
+<div id="root"><div class="ld"><div class="sp"></div><p style="margin-top:16px">Loading...</p></div></div>
+<script type="text/babel">
+const{useState,useEffect}=React;
+const C={bg:'#1c1c1c',bgD:'#0d0d0d',blue:'#58c4dd',gold:'#ffd700',cream:'#fffdd0',green:'#83c167',red:'#fc6255',purple:'#9a72ac',orange:'#ff8c00',teal:'#20b2aa',text:'#fff',muted:'#888',grid:'#333'};
+
+const Slider=({label,value,min,max,step=1,color=C.blue,onChange})=>(
+<div style={{display:'flex',alignItems:'center',gap:10}}>
+<span style={{color:C.muted,fontSize:13,width:85}}>{label}:</span>
+<input type="range" min={min} max={max} step={step} value={value} onChange={e=>onChange(Number(e.target.value))} style={{accentColor:color,width:100}}/>
+<span style={{color,fontSize:16,width:35}}>{value}</span>
+</div>);
+
+const Practice=({q,choices,correct,exp})=>{
+const[sel,setSel]=useState(null);
+const[show,setShow]=useState(false);
+return(
+<div style={{background:C.bgD,padding:18,borderRadius:10,marginTop:18}}>
+<div style={{color:C.gold,fontSize:12,marginBottom:6}}>📝 PRACTICE</div>
+<div style={{color:C.cream,fontSize:15,marginBottom:12}}>{q}</div>
+<div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>
+{choices.map((c,i)=>(
+<button key={i} onClick={()=>{setSel(i);setShow(true)}} style={{
+padding:'10px 12px',textAlign:'left',
+background:show?(i===correct?`${C.green}30`:i===sel?`${C.red}30`:C.bg):(sel===i?`${C.blue}30`:C.bg),
+border:`1px solid ${show&&i===correct?C.green:C.grid}`,
+borderRadius:6,color:C.text,cursor:'pointer',fontSize:14
+}}>{String.fromCharCode(65+i)}) {c}</button>
+))}
+</div>
+{show&&<div style={{marginTop:10,padding:10,background:C.bg,borderRadius:6}}>
+<div style={{color:sel===correct?C.green:C.red,fontWeight:600,fontSize:13}}>{sel===correct?'✓ Correct!':`✗ Answer: ${String.fromCharCode(65+correct)}`}</div>
+{exp&&<div style={{color:C.muted,fontSize:12,marginTop:4}}>{exp}</div>}
+</div>}
+</div>);};
+
+const NumberLine=({points=[]})=>{
+const w=360,h=60,p=20;
+const sc=v=>p+((v+10)/20)*(w-2*p);
+return(
+<svg width={w} height={h}>
+<line x1={p} y1={h/2} x2={w-p} y2={h/2} stroke={C.muted} strokeWidth={2}/>
+{[-10,-5,0,5,10].map(v=><g key={v}><line x1={sc(v)} y1={h/2-4} x2={sc(v)} y2={h/2+4} stroke={v===0?C.text:C.grid}/><text x={sc(v)} y={h/2+16} fill={C.muted} fontSize={10} textAnchor="middle">{v}</text></g>)}
+{points.map((pt,i)=><g key={i}><circle cx={sc(pt.v)} cy={h/2} r={6} fill={pt.c} opacity={0.3}/><circle cx={sc(pt.v)} cy={h/2} r={4} fill={pt.c}/>{pt.l&&<text x={sc(pt.v)} y={h/2-10} fill={pt.c} fontSize={11} textAnchor="middle">{pt.l}</text>}</g>)}
+</svg>);};
+
+const CoordPlane=({points=[],lines=[]})=>{
+const w=280,h=280,p=30;
+const xs=x=>p+((x+5)/10)*(w-2*p);
+const ys=y=>h-p-((y+5)/10)*(h-2*p);
+return(
+<svg width={w} height={h} style={{background:C.bgD,borderRadius:8}}>
+{[-5,-4,-3,-2,-1,0,1,2,3,4,5].map(v=><g key={v}><line x1={xs(v)} y1={p} x2={xs(v)} y2={h-p} stroke={v===0?C.muted:C.grid}/><line x1={p} y1={ys(v)} x2={w-p} y2={ys(v)} stroke={v===0?C.muted:C.grid}/></g>)}
+{lines.map((l,i)=><line key={i} x1={xs(l.x1)} y1={ys(l.y1)} x2={xs(l.x2)} y2={ys(l.y2)} stroke={l.c||C.blue} strokeWidth={3}/>)}
+{points.map((pt,i)=><g key={i}><circle cx={xs(pt.x)} cy={ys(pt.y)} r={6} fill={pt.c||C.gold} opacity={0.3}/><circle cx={xs(pt.x)} cy={ys(pt.y)} r={4} fill={pt.c||C.gold}/></g>)}
+</svg>);};
+
+const FracBar=({n,d,c=C.blue})=>{
+const w=160,pw=w/d;
+return(
+<div style={{display:'flex',flexDirection:'column',alignItems:'center',gap:6}}>
+<svg width={w+4} height={32}><rect x={0} y={0} width={w} height={28} fill="none" stroke={C.muted} strokeWidth={2} rx={4}/>
+{Array.from({length:d},(_,i)=><g key={i}><rect x={i*pw+2} y={2} width={pw-4} height={24} fill={i<n?c:'transparent'} rx={2}/>{i>0&&<line x1={i*pw} y1={0} x2={i*pw} y2={28} stroke={C.grid}/>}</g>)}
+</svg>
+<div style={{fontFamily:'Georgia,serif',fontSize:18,color:c,display:'flex',flexDirection:'column',alignItems:'center'}}><span>{n}</span><div style={{width:20,height:2,background:C.text}}/><span>{d}</span></div>
+</div>);};
+
+const BarChart=({data})=>{
+const w=300,h=160,max=Math.max(...data.map(d=>d.v)),bw=(w-40)/data.length-8;
+return(
+<svg width={w} height={h}>
+<line x1={28} y1={h-28} x2={w-8} y2={h-28} stroke={C.muted}/>
+{data.map((d,i)=>{const bh=(d.v/max)*(h-50),x=36+i*(bw+8);return(
+<g key={i}><rect x={x} y={h-28-bh} width={bw} height={bh} fill={d.c||C.blue} rx={3}/><text x={x+bw/2} y={h-10} fill={C.muted} fontSize={10} textAnchor="middle">{d.l}</text><text x={x+bw/2} y={h-33-bh} fill={C.text} fontSize={11} textAnchor="middle">{d.v}</text></g>
+)})}
+</svg>);};
+
+const topics=[
+{id:1,t:'Whole Numbers',c:C.blue,cat:'num',comp:()=>{
+const[op,setOp]=useState('+');
+const ops={'+':12400+500,'-':12400-500,'×':240*28,'÷':Math.floor(6720/240)};
+return(<div>
+<p style={{color:C.cream,lineHeight:1.7,fontSize:15}}>Whole numbers: 0,1,2,3... Master <span style={{color:C.blue}}>+−×÷</span></p>
+<div style={{background:C.bgD,padding:20,borderRadius:10,marginTop:16,textAlign:'center'}}>
+<div style={{display:'flex',justifyContent:'center',gap:10,marginBottom:16}}>
+{['+','-','×','÷'].map(o=><button key={o} onClick={()=>setOp(o)} style={{width:40,height:40,fontSize:18,borderRadius:6,background:op===o?C.blue:C.grid,border:'none',color:C.text,cursor:'pointer'}}>{o}</button>)}
+</div>
+<div style={{fontSize:22,fontFamily:'Georgia,serif'}}>Result: <span style={{color:C.gold}}>{ops[op].toLocaleString()}</span></div>
+</div>
+<Practice q="Library: 12,400 books + 500 more = ?" choices={['11,900','12,900','13,000','17,400']} correct={1} exp="12,400+500=12,900"/>
+</div>);}},
+
+{id:2,t:'PEMDAS',c:C.gold,cat:'num',comp:()=>{
+const[s,setS]=useState(0);
+const steps=['3[15−(2³−4)]+5','3[15−(8−4)]+5','3[15−4]+5','3[11]+5','33+5=38'];
+return(<div>
+<p style={{color:C.cream,lineHeight:1.7,fontSize:15}}><span style={{color:C.gold}}>PEMDAS</span>: Parentheses, Exponents, Multiply/Divide, Add/Subtract</p>
+<div style={{background:C.bgD,padding:20,borderRadius:10,marginTop:16}}>
+<div style={{display:'flex',flexDirection:'column',gap:8,fontFamily:'Georgia,serif',fontSize:18}}>
+{steps.map((st,i)=><div key={i} style={{opacity:i<=s?1:0.2,color:i===s?C.gold:C.text,transition:'all 0.3s'}}>{st}</div>)}
+</div>
+<div style={{display:'flex',gap:10,justifyContent:'center',marginTop:16}}>
+<button onClick={()=>setS(Math.max(0,s-1))} disabled={s===0} style={{padding:'8px 16px',background:s===0?C.grid:C.blue,border:'none',borderRadius:6,color:C.text,cursor:s===0?'not-allowed':'pointer'}}>← Prev</button>
+<button onClick={()=>setS(Math.min(4,s+1))} disabled={s===4} style={{padding:'8px 16px',background:s===4?C.grid:C.gold,border:'none',borderRadius:6,color:C.bgD,fontWeight:600,cursor:s===4?'not-allowed':'pointer'}}>Next →</button>
+</div>
+</div>
+<Practice q="Simplify: 10 + 5 × 2" choices={['20','30','25','17']} correct={0} exp="Multiply first: 5×2=10, then 10+10=20"/>
+</div>);}},
+
+{id:3,t:'Integers',c:C.red,cat:'num',comp:()=>{
+const[a,setA]=useState(-5);const[b,setB]=useState(8);
+return(<div>
+<p style={{color:C.cream,lineHeight:1.7,fontSize:15}}>Integers: <span style={{color:C.red}}>negatives</span>, zero, <span style={{color:C.green}}>positives</span></p>
+<div style={{background:C.bgD,padding:20,borderRadius:10,marginTop:16}}>
+<div style={{display:'flex',justifyContent:'center',marginBottom:16}}><NumberLine points={[{v:a,c:C.red,l:a},{v:b,c:C.green,l:b},{v:a+b,c:C.gold,l:a+b}]}/></div>
+<div style={{textAlign:'center',fontSize:22,fontFamily:'Georgia,serif',marginBottom:16}}><span style={{color:C.red}}>{a}</span> + <span style={{color:C.green}}>{b}</span> = <span style={{color:C.gold}}>{a+b}</span></div>
+<div style={{display:'flex',flexDirection:'column',gap:10,alignItems:'center'}}>
+<Slider label="First" value={a} min={-10} max={10} color={C.red} onChange={setA}/>
+<Slider label="Second" value={b} min={-10} max={10} color={C.green} onChange={setB}/>
+</div>
+</div>
+<Practice q="Diver at -20ft descends 15 more. Depth?" choices={['-5 ft','-35 ft','5 ft','35 ft']} correct={1} exp="-20+(-15)=-35"/>
+</div>);}},
+
+{id:4,t:'Fractions',c:C.green,cat:'num',comp:()=>{
+const[n,setN]=useState(3);const[d,setD]=useState(4);
+return(<div>
+<p style={{color:C.cream,lineHeight:1.7,fontSize:15}}>Fractions: <span style={{color:C.blue}}>numerator</span>/​<span style={{color:C.green}}>denominator</span> = parts/whole</p>
+<div style={{background:C.bgD,padding:20,borderRadius:10,marginTop:16,display:'flex',justifyContent:'center',alignItems:'center',gap:30,flexWrap:'wrap'}}>
+<FracBar n={n} d={d}/>
+<div style={{display:'flex',flexDirection:'column',gap:10}}>
+<Slider label="Numerator" value={n} min={0} max={d} color={C.blue} onChange={setN}/>
+<Slider label="Denom" value={d} min={1} max={12} color={C.green} onChange={v=>{setD(v);if(n>v)setN(v);}}/>
+<div style={{color:C.gold,textAlign:'center'}}>= {Math.round(n/d*100)}%</div>
+</div>
+</div>
+<Practice q="Calculate: 2½ × ⅔" choices={['1⅔','2⅓','3⅙','⅚']} correct={0} exp="5/2 × 2/3 = 10/6 = 1⅔"/>
+</div>);}},
+
+{id:5,t:'Ratios & Proportions',c:C.purple,cat:'num',comp:()=>{
+const[items,setItems]=useState(3);const[cost,setCost]=useState(1.5);const[find,setFind]=useState(10);
+return(<div>
+<p style={{color:C.cream,lineHeight:1.7,fontSize:15}}>Ratios compare quantities. Cross-multiply to solve proportions!</p>
+<div style={{background:C.bgD,padding:20,borderRadius:10,marginTop:16,textAlign:'center'}}>
+<div style={{fontSize:16,marginBottom:10}}>If {items} items = ${cost.toFixed(2)}, then {find} items = ?</div>
+<div style={{fontSize:28,color:C.gold,fontFamily:'Georgia,serif'}}>${((cost/items)*find).toFixed(2)}</div>
+</div>
+<Practice q="3 apples = $1.50. Cost of 10?" choices={['$4.50','$5.00','$5.50','$6.00']} correct={1} exp="$0.50 each × 10 = $5.00"/>
+</div>);}},
+
+{id:6,t:'Decimals',c:C.orange,cat:'num',comp:()=>(<div>
+<p style={{color:C.cream,lineHeight:1.7,fontSize:15}}>Line up decimal points for +/−. Count places for ×/÷.</p>
+<div style={{background:C.bgD,padding:20,borderRadius:10,marginTop:16,display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,textAlign:'center'}}>
+{[{o:'+',r:'16.25'},{o:'-',r:'9.25'},{o:'×',r:'6.25'},{o:'÷',r:'25'}].map(({o,r})=>(<div key={o} style={{background:C.bg,padding:12,borderRadius:6}}><div style={{color:C.muted,fontSize:12}}>12.5 {o} 0.5</div><div style={{color:C.gold,fontSize:18}}>{r}</div></div>))}
+</div>
+<Practice q="345.6 miles ÷ 12.8 gallons = MPG?" choices={['25','27','29','32']} correct={1} exp="345.6÷12.8=27"/>
+</div>)},
+
+{id:7,t:'Percent',c:C.teal,cat:'num',comp:()=>{
+const[w,setW]=useState(80);const[p,setP]=useState(50);
+return(<div>
+<p style={{color:C.cream,lineHeight:1.7,fontSize:15}}>Percent = "per hundred". Convert to decimal and multiply!</p>
+<div style={{background:C.bgD,padding:20,borderRadius:10,marginTop:16,textAlign:'center'}}>
+<div style={{fontSize:22,marginBottom:12}}><span style={{color:C.blue}}>{p}%</span> of <span style={{color:C.green}}>{w}</span> = <span style={{color:C.gold}}>{(p/100)*w}</span></div>
+<div style={{width:'80%',margin:'0 auto',height:20,background:C.grid,borderRadius:10,overflow:'hidden'}}><div style={{width:`${p}%`,height:'100%',background:`linear-gradient(90deg,${C.blue},${C.gold})`}}/></div>
+<div style={{marginTop:16,display:'flex',flexDirection:'column',gap:10,alignItems:'center'}}>
+<Slider label="Whole" value={w} min={10} max={200} step={10} color={C.green} onChange={setW}/>
+<Slider label="Percent" value={p} min={0} max={100} step={5} color={C.blue} onChange={setP}/>
+</div>
+</div>
+<Practice q="$50 shirt 20% off. Sale price?" choices={['$10','$30','$40','$45']} correct={2} exp="$50-$10=$40"/>
+</div>);}},
+
+{id:8,t:'Measurement',c:C.blue,cat:'num',comp:()=>(<div>
+<p style={{color:C.cream,lineHeight:1.7,fontSize:15}}>Convert using factors. ×to go smaller, ÷to go larger.</p>
+<div style={{background:C.bgD,padding:20,borderRadius:10,marginTop:16,display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
+{[{f:'Hr→Min',r:'×60'},{f:'Yd→Ft',r:'×3'},{f:'Mi→Ft',r:'×5280'},{f:'Gal→Qt',r:'×4'}].map(c=>(<div key={c.f} style={{background:C.bg,padding:12,borderRadius:6,textAlign:'center'}}><div style={{color:C.blue}}>{c.f}</div><div style={{color:C.gold}}>{c.r}</div></div>))}
+</div>
+<Practice q="Minutes in 3 hours?" choices={['120','180','200','360']} correct={1} exp="3×60=180"/>
+</div>)},
+
+{id:9,t:'Area & Volume',c:C.green,cat:'geo',comp:()=>{
+const[l,setL]=useState(5);const[w,setW]=useState(4);const[h,setH]=useState(3);
+return(<div>
+<p style={{color:C.cream,lineHeight:1.7,fontSize:15}}>Perimeter=add sides | Area=l×w | Volume=l×w×h</p>
+<div style={{background:C.bgD,padding:20,borderRadius:10,marginTop:16,textAlign:'center'}}>
+<div style={{marginBottom:12}}>l={l}, w={w}, h={h}</div>
+<div><span style={{color:C.blue}}>P={2*(l+w)}</span> | <span style={{color:C.green}}>A={l*w}</span> | <span style={{color:C.gold}}>V={l*w*h}</span></div>
+</div>
+<Practice q="Pool 30×15×6 ft. Volume?" choices={['1,800','2,700','3,000','450']} correct={1} exp="30×15×6=2,700"/>
+</div>);}},
+
+{id:10,t:'Mean, Median, Mode',c:C.purple,cat:'data',comp:()=>(<div>
+<p style={{color:C.cream,lineHeight:1.7,fontSize:15}}>Mean=average | Median=middle | Mode=most frequent</p>
+<div style={{background:C.bgD,padding:20,borderRadius:10,marginTop:16}}>
+<div style={{color:C.muted,marginBottom:12,textAlign:'center'}}>Data: [2,4,4,4,5,5,7,9]</div>
+<div style={{display:'flex',justifyContent:'center'}}><BarChart data={[2,4,4,4,5,5,7,9].map((v,i)=>({v,l:v,c:v===4?C.purple:C.blue}))}/></div>
+<div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:12,marginTop:16,textAlign:'center'}}>
+<div style={{background:C.bg,padding:10,borderRadius:6}}><div style={{color:C.blue}}>Mean</div><div style={{fontSize:18}}>5</div></div>
+<div style={{background:C.bg,padding:10,borderRadius:6}}><div style={{color:C.green}}>Median</div><div style={{fontSize:18}}>4.5</div></div>
+<div style={{background:C.bg,padding:10,borderRadius:6}}><div style={{color:C.purple}}>Mode</div><div style={{fontSize:18}}>4</div></div>
+</div>
+</div>
+<Practice q="Scores 85,90,80. Need 88 avg. 4th?" choices={['90','92','95','97']} correct={3} exp="Need 352 total. Have 255. Need 97."/>
+</div>)},
+
+{id:11,t:'Probability',c:C.gold,cat:'data',comp:()=>(<div>
+<p style={{color:C.cream,lineHeight:1.7,fontSize:15}}>P = favorable/total outcomes (0 to 1)</p>
+<div style={{background:C.bgD,padding:20,borderRadius:10,marginTop:16}}>
+<div style={{display:'flex',justifyContent:'center',gap:6,marginBottom:16,flexWrap:'wrap'}}>
+{[...Array(3)].map((_,i)=><div key={`r${i}`} style={{width:22,height:22,borderRadius:'50%',background:C.red}}/>)}
+{[...Array(2)].map((_,i)=><div key={`b${i}`} style={{width:22,height:22,borderRadius:'50%',background:C.blue}}/>)}
+{[...Array(5)].map((_,i)=><div key={`g${i}`} style={{width:22,height:22,borderRadius:'50%',background:C.green}}/>)}
+</div>
+<div style={{textAlign:'center'}}>P(Red) = 3/10 = 30%</div>
+</div>
+<Practice q="Roll die twice. P(two 6s)?" choices={['1/6','1/12','1/36','2/6']} correct={2} exp="1/6 × 1/6 = 1/36"/>
+</div>)},
+
+{id:12,t:'Bar & Line Graphs',c:C.blue,cat:'data',comp:()=>(<div>
+<p style={{color:C.cream,lineHeight:1.7,fontSize:15}}>Bar=categories | Line=change over time</p>
+<div style={{background:C.bgD,padding:20,borderRadius:10,marginTop:16,display:'flex',justifyContent:'center'}}>
+<BarChart data={[{l:'Jan',v:100,c:C.blue},{l:'Feb',v:150,c:C.green},{l:'Mar',v:125,c:C.gold}]}/>
+</div>
+<Practice q="Sales: Jan $100, Feb $150. Increase?" choices={['$25','$50','$75','$100']} correct={1} exp="$150-$100=$50"/>
+</div>)},
+
+{id:13,t:'Circle Graphs',c:C.red,cat:'data',comp:()=>(<div>
+<p style={{color:C.cream,lineHeight:1.7,fontSize:15}}>Full circle = 100% = 360°</p>
+<div style={{background:C.bgD,padding:20,borderRadius:10,marginTop:16,textAlign:'center'}}>
+<div>50% = 180° | 25% = 90° | 10% = 36°</div>
+</div>
+<Practice q="50% sector = degrees?" choices={['90°','180°','270°','360°']} correct={1} exp="50%×360°=180°"/>
+</div>)},
+
+{id:14,t:'Box Plots',c:C.green,cat:'data',comp:()=>(<div>
+<p style={{color:C.cream,lineHeight:1.7,fontSize:15}}>5-number summary: min, Q1, median, Q3, max. IQR=Q3−Q1</p>
+<div style={{background:C.bgD,padding:20,borderRadius:10,marginTop:16}}>
+<svg width={280} height={60}>
+<line x1={20} y1={30} x2={260} y2={30} stroke={C.muted}/>
+<line x1={40} y1={20} x2={40} y2={40} stroke={C.blue} strokeWidth={2}/>
+<rect x={80} y={18} width={80} height={24} fill={`${C.blue}30`} stroke={C.blue} strokeWidth={2}/>
+<line x1={120} y1={18} x2={120} y2={42} stroke={C.gold} strokeWidth={3}/>
+<line x1={220} y1={20} x2={220} y2={40} stroke={C.blue} strokeWidth={2}/>
+<text x={40} y={55} fill={C.muted} fontSize={9} textAnchor="middle">Min</text>
+<text x={80} y={55} fill={C.muted} fontSize={9} textAnchor="middle">Q1</text>
+<text x={120} y={55} fill={C.gold} fontSize={9} textAnchor="middle">Med</text>
+<text x={160} y={55} fill={C.muted} fontSize={9} textAnchor="middle">Q3</text>
+<text x={220} y={55} fill={C.muted} fontSize={9} textAnchor="middle">Max</text>
+</svg>
+</div>
+<Practice q="IQR if Q1=12, Q3=20?" choices={['8','16','32','6']} correct={0} exp="20-12=8"/>
+</div>)},
+
+{id:15,t:'Expressions',c:C.blue,cat:'alg',comp:()=>(<div>
+<p style={{color:C.cream,lineHeight:1.7,fontSize:15}}>Combine like terms. Distribute: a(b+c)=ab+ac</p>
+<div style={{background:C.bgD,padding:20,borderRadius:10,marginTop:16,textAlign:'center',fontSize:18}}>
+<span style={{color:C.blue}}>2x</span> + <span style={{color:C.blue}}>5x</span> = <span style={{color:C.gold}}>7x</span>
+</div>
+<Practice q="Evaluate 3x−4 when x=5" choices={['7','11','15','19']} correct={1} exp="3(5)-4=11"/>
+</div>)},
+
+{id:16,t:'Squares & Roots',c:C.gold,cat:'alg',comp:()=>(<div>
+<p style={{color:C.cream,lineHeight:1.7,fontSize:15}}>n²=n×n | √n=what squared gives n</p>
+<div style={{background:C.bgD,padding:20,borderRadius:10,marginTop:16,textAlign:'center'}}>
+<div style={{display:'flex',justifyContent:'center',gap:6,flexWrap:'wrap'}}>
+{[1,4,9,16,25,36,49,64,81,100].map(n=><div key={n} style={{padding:'5px 10px',background:C.grid,borderRadius:4,fontSize:13}}>{n}</div>)}
+</div>
+<div style={{color:C.muted,fontSize:12,marginTop:8}}>Perfect squares</div>
+</div>
+<Practice q="Simplify √50" choices={['5','5√2','2√5','25']} correct={1} exp="√50=√(25×2)=5√2"/>
+</div>)},
+
+{id:17,t:'Exponents',c:C.purple,cat:'alg',comp:()=>(<div>
+<p style={{color:C.cream,lineHeight:1.7,fontSize:15}}>xᵃ×xᵇ=xᵃ⁺ᵇ | (xᵃ)ᵇ=xᵃᵇ</p>
+<div style={{background:C.bgD,padding:20,borderRadius:10,marginTop:16,textAlign:'center'}}>
+<div style={{fontSize:22}}>10³ = 10×10×10 = <span style={{color:C.gold}}>1,000</span></div>
+</div>
+<Practice q="Simplify x³·x⁴" choices={['x⁷','x¹²','2x⁷','x¹']} correct={0} exp="Add exponents: 3+4=7"/>
+</div>)},
+
+{id:18,t:'Patterns',c:C.green,cat:'alg',comp:()=>(<div>
+<p style={{color:C.cream,lineHeight:1.7,fontSize:15}}>Arithmetic: constant difference. aₙ=a₁+(n-1)d</p>
+<div style={{background:C.bgD,padding:20,borderRadius:10,marginTop:16,display:'flex',justifyContent:'center',gap:8,alignItems:'center'}}>
+{[3,7,11,15,19].map((n,i)=><React.Fragment key={n}><div style={{width:36,height:36,borderRadius:6,background:C.blue,display:'flex',alignItems:'center',justifyContent:'center'}}>{n}</div>{i<4&&<span style={{color:C.gold}}>+4</span>}</React.Fragment>)}
+</div>
+<Practice q="10th term of aₙ=2n+5?" choices={['20','25','30','15']} correct={1} exp="2(10)+5=25"/>
+</div>)},
+
+{id:19,t:'Linear Equations',c:C.blue,cat:'alg',comp:()=>{
+const[s,setS]=useState(0);
+const steps=['2x-4=10','2x=14','x=7'];
+return(<div>
+<p style={{color:C.cream,lineHeight:1.7,fontSize:15}}>Isolate variable. Do same to both sides!</p>
+<div style={{background:C.bgD,padding:20,borderRadius:10,marginTop:16}}>
+<div style={{display:'flex',flexDirection:'column',gap:8,fontFamily:'Georgia,serif',fontSize:18,textAlign:'center'}}>
+{steps.map((st,i)=><div key={i} style={{opacity:i<=s?1:0.2,color:i===s?C.gold:C.text}}>{st}</div>)}
+</div>
+<div style={{display:'flex',gap:10,justifyContent:'center',marginTop:16}}>
+<button onClick={()=>setS(Math.max(0,s-1))} style={{padding:'8px 16px',background:s===0?C.grid:C.blue,border:'none',borderRadius:6,color:C.text,cursor:'pointer'}}>←</button>
+<button onClick={()=>setS(Math.min(2,s+1))} style={{padding:'8px 16px',background:s===2?C.grid:C.gold,border:'none',borderRadius:6,color:C.bgD,cursor:'pointer'}}>→</button>
+</div>
+</div>
+<Practice q="Solve: 2x−4=10" choices={['3','6','7','14']} correct={2} exp="2x=14, x=7"/>
+</div>);}},
+
+{id:20,t:'Factoring',c:C.red,cat:'alg',comp:()=>(<div>
+<p style={{color:C.cream,lineHeight:1.7,fontSize:15}}>GCF, difference of squares (a²-b²), trinomials</p>
+<div style={{background:C.bgD,padding:20,borderRadius:10,marginTop:16}}>
+<div style={{background:C.bg,padding:12,borderRadius:6,marginBottom:8}}><span style={{color:C.blue}}>GCF:</span> 4x+8 = <span style={{color:C.gold}}>4(x+2)</span></div>
+<div style={{background:C.bg,padding:12,borderRadius:6}}><span style={{color:C.green}}>Diff²:</span> x²−9 = <span style={{color:C.gold}}>(x+3)(x−3)</span></div>
+</div>
+<Practice q="Factor: x²−9" choices={['(x−3)²','(x+3)(x−3)','(x−9)(x+1)','(x+9)(x−1)']} correct={1} exp="Difference of squares"/>
+</div>)},
+
+{id:21,t:'Rational Expressions',c:C.orange,cat:'alg',comp:()=>(<div>
+<p style={{color:C.cream,lineHeight:1.7,fontSize:15}}>Factor and cancel common factors</p>
+<div style={{background:C.bgD,padding:20,borderRadius:10,marginTop:16,textAlign:'center',fontSize:16}}>
+(x²−4)/(x−2) = (x+2)(x−2)/(x−2) = <span style={{color:C.gold}}>x+2</span>
+</div>
+<Practice q="Simplify: 10x/2" choices={['2x','5x','8x','10x/2']} correct={1} exp="10x÷2=5x"/>
+</div>)},
+
+{id:22,t:'Inequalities',c:C.teal,cat:'alg',comp:()=>(<div>
+<p style={{color:C.cream,lineHeight:1.7,fontSize:15}}>&lt;,&gt;,≤,≥. <span style={{color:C.red}}>Flip when ×/÷ by negative!</span></p>
+<div style={{background:C.bgD,padding:20,borderRadius:10,marginTop:16,textAlign:'center'}}>
+<div style={{fontSize:18}}>2x+1≤9 → x≤<span style={{color:C.gold}}>4</span></div>
+</div>
+<Practice q="Solve: −3x<12" choices={['x<−4','x>−4','x<4','x>4']} correct={1} exp="Divide by -3, flip: x>-4"/>
+</div>)},
+
+{id:23,t:'Coordinate Plane',c:C.blue,cat:'alg',comp:()=>{
+const[px,setPx]=useState(3);const[py,setPy]=useState(2);
+return(<div>
+<p style={{color:C.cream,lineHeight:1.7,fontSize:15}}>Points: (x,y). 4 quadrants counter-clockwise from I</p>
+<div style={{background:C.bgD,padding:20,borderRadius:10,marginTop:16,display:'flex',justifyContent:'center',alignItems:'center',gap:20,flexWrap:'wrap'}}>
+<CoordPlane points={[{x:px,y:py,c:C.gold}]}/>
+<div>
+<div style={{marginBottom:12}}>({px},{py})</div>
+<Slider label="x" value={px} min={-5} max={5} color={C.blue} onChange={setPx}/>
+<div style={{height:8}}/>
+<Slider label="y" value={py} min={-5} max={5} color={C.green} onChange={setPy}/>
+</div>
+</div>
+<Practice q="Midpoint of (0,0) and (6,8)?" choices={['(3,4)','(6,8)','(2,2)','(12,16)']} correct={0} exp="((0+6)/2,(0+8)/2)=(3,4)"/>
+</div>);}},
+
+{id:24,t:'Graphing Lines',c:C.green,cat:'alg',comp:()=>{
+const[m,setM]=useState(2);const[b,setB]=useState(1);
+return(<div>
+<p style={{color:C.cream,lineHeight:1.7,fontSize:15}}>y=mx+b: m=slope, b=y-intercept</p>
+<div style={{background:C.bgD,padding:20,borderRadius:10,marginTop:16,display:'flex',justifyContent:'center',alignItems:'center',gap:20,flexWrap:'wrap'}}>
+<CoordPlane lines={[{x1:-5,y1:m*-5+b,x2:5,y2:m*5+b,c:C.blue}]}/>
+<div>
+<div style={{fontSize:18,marginBottom:12}}>y=<span style={{color:C.green}}>{m}</span>x+<span style={{color:C.purple}}>{b}</span></div>
+<Slider label="Slope" value={m} min={-3} max={3} step={0.5} color={C.green} onChange={setM}/>
+<div style={{height:8}}/>
+<Slider label="Y-int" value={b} min={-4} max={4} color={C.purple} onChange={setB}/>
+</div>
+</div>
+<Practice q="Y-intercept of y=3x+4?" choices={['3','4','-4','0']} correct={1} exp="b=4"/>
+</div>);}},
+
+{id:25,t:'Slope',c:C.gold,cat:'alg',comp:()=>(<div>
+<p style={{color:C.cream,lineHeight:1.7,fontSize:15}}>Slope=rise/run=(y₂-y₁)/(x₂-x₁)</p>
+<div style={{background:C.bgD,padding:20,borderRadius:10,marginTop:16,textAlign:'center'}}>
+<div>Points: (2,3) and (4,11)</div>
+<div style={{fontSize:18,marginTop:8}}>m=(11-3)/(4-2)=8/2=<span style={{color:C.gold}}>4</span></div>
+</div>
+<Practice q="Slope: (2,3) to (4,11)?" choices={['2','4','6','8']} correct={1} exp="(11-3)/(4-2)=4"/>
+</div>)},
+
+{id:26,t:'Parallel & Perpendicular',c:C.purple,cat:'alg',comp:()=>(<div>
+<p style={{color:C.cream,lineHeight:1.7,fontSize:15}}>Parallel=same slope | Perpendicular=negative reciprocal</p>
+<div style={{background:C.bgD,padding:20,borderRadius:10,marginTop:16,textAlign:'center'}}>
+<div>m=3 → <span style={{color:C.blue}}>Parallel: 3</span> | <span style={{color:C.green}}>Perp: -⅓</span></div>
+</div>
+<Practice q="Slope=3. Perpendicular slope?" choices={['3','-3','1/3','-1/3']} correct={3} exp="Negative reciprocal"/>
+</div>)},
+
+{id:27,t:'Quadratics',c:C.red,cat:'alg',comp:()=>(<div>
+<p style={{color:C.cream,lineHeight:1.7,fontSize:15}}>y=ax²+bx+c forms parabola. Roots=x-intercepts</p>
+<div style={{background:C.bgD,padding:20,borderRadius:10,marginTop:16,textAlign:'center'}}>
+<div>y=x²−4 | Roots: x=±2</div>
+</div>
+<Practice q="Roots of x²−4=0?" choices={['2 only','-2 only','2 and -2','4 and -4']} correct={2} exp="x²=4 → x=±2"/>
+</div>)},
+
+{id:28,t:'Functions',c:C.blue,cat:'alg',comp:()=>{
+const[x,setX]=useState(3);
+return(<div>
+<p style={{color:C.cream,lineHeight:1.7,fontSize:15}}>f(x)=function notation. Substitute x value.</p>
+<div style={{background:C.bgD,padding:20,borderRadius:10,marginTop:16}}>
+<div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,textAlign:'center'}}>
+<div style={{background:C.bg,padding:12,borderRadius:6}}><div style={{color:C.blue}}>f(x)=x+2</div><div style={{color:C.gold,fontSize:18}}>f({x})={x+2}</div></div>
+<div style={{background:C.bg,padding:12,borderRadius:6}}><div style={{color:C.green}}>g(x)=2x²</div><div style={{color:C.gold,fontSize:18}}>g({x})={2*x*x}</div></div>
+</div>
+<div style={{marginTop:16,display:'flex',justifyContent:'center'}}><Slider label="x" value={x} min={-5} max={5} color={C.blue} onChange={setX}/></div>
+</div>
+<Practice q="g(x)=2x². Find g(3)" choices={['6','12','18','36']} correct={2} exp="2(9)=18"/>
+</div>);}},
+
+{id:29,t:'Comparing Functions',c:C.orange,cat:'alg',comp:()=>(<div>
+<p style={{color:C.cream,lineHeight:1.7,fontSize:15}}>Compare rates, y-intercepts, values at points</p>
+<div style={{background:C.bgD,padding:20,borderRadius:10,marginTop:16,display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,textAlign:'center'}}>
+<div style={{background:C.bg,padding:12,borderRadius:6}}><span style={{color:C.blue}}>f(x)=2x+3</span><div style={{color:C.muted,fontSize:11}}>y-int=3</div></div>
+<div style={{background:C.bg,padding:12,borderRadius:6}}><span style={{color:C.green}}>g(x)=x²+1</span><div style={{color:C.muted,fontSize:11}}>y-int=1</div></div>
+</div>
+<Practice q="Higher y-int: f(x)=2x+3 or g(x)=x²+1?" choices={['f','g','Equal','?']} correct={0} exp="f(0)=3, g(0)=1"/>
+</div>)},
+
+{id:30,t:'Triangles & Quads',c:C.blue,cat:'geo',comp:()=>(<div>
+<p style={{color:C.cream,lineHeight:1.7,fontSize:15}}>Triangle=180° | Quadrilateral=360°</p>
+<div style={{background:C.bgD,padding:20,borderRadius:10,marginTop:16,textAlign:'center'}}>
+<div>50° + 60° + ? = 180° → <span style={{color:C.gold}}>70°</span></div>
+</div>
+<Practice q="Triangle: 50°, 60°. Third angle?" choices={['70°','80°','90°','100°']} correct={0} exp="180-50-60=70"/>
+</div>)},
+
+{id:31,t:'Pythagorean Theorem',c:C.gold,cat:'geo',comp:()=>{
+const[a,setA]=useState(3);const[b,setB]=useState(4);
+const c=Math.sqrt(a*a+b*b);
+return(<div>
+<p style={{color:C.cream,lineHeight:1.7,fontSize:15}}>a²+b²=c² (c=hypotenuse)</p>
+<div style={{background:C.bgD,padding:20,borderRadius:10,marginTop:16,textAlign:'center'}}>
+<div style={{fontSize:18}}>{a}²+{b}²={a*a+b*b} → c=<span style={{color:C.gold}}>{c.toFixed(2)}</span></div>
+<div style={{marginTop:16,display:'flex',flexDirection:'column',gap:10,alignItems:'center'}}>
+<Slider label="a" value={a} min={1} max={8} color={C.red} onChange={setA}/>
+<Slider label="b" value={b} min={1} max={8} color={C.green} onChange={setB}/>
+</div>
+</div>
+<Practice q="Ladder 13ft, base 5ft. Height?" choices={['8 ft','10 ft','12 ft','18 ft']} correct={2} exp="5²+h²=169 → h=12"/>
+</div>);}},
+
+{id:32,t:'Polygons',c:C.green,cat:'geo',comp:()=>(<div>
+<p style={{color:C.cream,lineHeight:1.7,fontSize:15}}>Angle sum = (n−2)×180°</p>
+<div style={{background:C.bgD,padding:20,borderRadius:10,marginTop:16,display:'grid',gridTemplateColumns:'repeat(5,1fr)',gap:8,textAlign:'center'}}>
+{[{n:'Tri',a:180},{n:'Quad',a:360},{n:'Pent',a:540},{n:'Hex',a:720},{n:'Oct',a:1080}].map(p=>(<div key={p.n} style={{background:C.bg,padding:8,borderRadius:6}}><div style={{color:C.blue,fontSize:11}}>{p.n}</div><div style={{color:C.gold,fontSize:13}}>{p.a}°</div></div>))}
+</div>
+<Practice q="Quadrilateral angles?" choices={['180°','270°','360°','540°']} correct={2} exp="(4-2)×180=360"/>
+</div>)},
+
+{id:33,t:'Circles',c:C.purple,cat:'geo',comp:()=>{
+const[r,setR]=useState(4);
+return(<div>
+<p style={{color:C.cream,lineHeight:1.7,fontSize:15}}>d=2r | C=2πr | A=πr²</p>
+<div style={{background:C.bgD,padding:20,borderRadius:10,marginTop:16,textAlign:'center'}}>
+<div>r={r} → d={r*2} | C={( 2*Math.PI*r).toFixed(1)} | A={(Math.PI*r*r).toFixed(1)}</div>
+<div style={{marginTop:12}}><Slider label="r" value={r} min={1} max={7} color={C.red} onChange={setR}/></div>
+</div>
+<Practice q="Area if C=12π?" choices={['6π','12π','36π','144π']} correct={2} exp="r=6, A=36π"/>
+</div>);}},
+
+{id:34,t:'Composite Figures',c:C.red,cat:'geo',comp:()=>(<div>
+<p style={{color:C.cream,lineHeight:1.7,fontSize:15}}>Add areas of parts, subtract cut-outs</p>
+<div style={{background:C.bgD,padding:20,borderRadius:10,marginTop:16,textAlign:'center'}}>
+<div>5×10 rect − 2×2 hole = 50−4 = <span style={{color:C.gold}}>46</span></div>
+</div>
+<Practice q="5×10 rect with 2×2 cut out?" choices={['46','48','50','54']} correct={0} exp="50-4=46"/>
+</div>)},
+
+{id:35,t:'Scale Drawings',c:C.teal,cat:'geo',comp:()=>(<div>
+<p style={{color:C.cream,lineHeight:1.7,fontSize:15}}>Drawing × scale factor = actual</p>
+<div style={{background:C.bgD,padding:20,borderRadius:10,marginTop:16,textAlign:'center'}}>
+<div>Scale: 1in=3ft | Room: 12×15ft → Drawing: <span style={{color:C.gold}}>4×5in</span></div>
+</div>
+<Practice q="Scale 1in=3ft. Room 12×15ft?" choices={['3×5in','4×5in','36×45in','9×12in']} correct={1} exp="12÷3=4, 15÷3=5"/>
+</div>)},
+
+{id:36,t:'Prisms & Cylinders',c:C.blue,cat:'geo',comp:()=>(<div>
+<p style={{color:C.cream,lineHeight:1.7,fontSize:15}}>Cube: V=s³ | Cylinder: V=πr²h</p>
+<div style={{background:C.bgD,padding:20,borderRadius:10,marginTop:16,display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,textAlign:'center'}}>
+<div style={{background:C.bg,padding:12,borderRadius:6}}><div style={{color:C.blue}}>Cube s=3</div><div>V=27</div></div>
+<div style={{background:C.bg,padding:12,borderRadius:6}}><div style={{color:C.green}}>Cyl r=2,h=5</div><div>V=20π</div></div>
+</div>
+<Practice q="Cylinder r=2, h=5?" choices={['10π','20π','25π','100π']} correct={1} exp="π(4)(5)=20π"/>
+</div>)},
+
+{id:37,t:'Pyramids, Cones, Spheres',c:C.orange,cat:'geo',comp:()=>(<div>
+<p style={{color:C.cream,lineHeight:1.7,fontSize:15}}>Cone=⅓cyl | Pyramid=⅓prism | Sphere=⁴⁄₃πr³</p>
+<div style={{background:C.bgD,padding:20,borderRadius:10,marginTop:16,display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:12,textAlign:'center'}}>
+<div style={{background:C.bg,padding:10,borderRadius:6}}><div style={{fontSize:20}}>🔺</div><div style={{fontSize:11}}>V=⅓Bh</div></div>
+<div style={{background:C.bg,padding:10,borderRadius:6}}><div style={{fontSize:20}}>🔻</div><div style={{fontSize:11}}>V=⅓πr²h</div></div>
+<div style={{background:C.bg,padding:10,borderRadius:6}}><div style={{fontSize:20}}>🔵</div><div style={{fontSize:11}}>V=⁴⁄₃πr³</div></div>
+</div>
+<Practice q="Sphere r=3?" choices={['12π','27π','36π','108π']} correct={2} exp="⁴⁄₃π(27)=36π"/>
+</div>)},
+
+{id:38,t:'Composite Solids',c:C.gold,cat:'geo',comp:()=>(<div>
+<p style={{color:C.cream,lineHeight:1.7,fontSize:15}}>Add volumes of combined shapes</p>
+<div style={{background:C.bgD,padding:20,borderRadius:10,marginTop:16,textAlign:'center'}}>
+<div>Cylinder(100) − Cone(30) = <span style={{color:C.gold}}>70</span></div>
+</div>
+<Practice q="Cyl(100)−Cone(30)=?" choices={['30','70','130','3000']} correct={1} exp="100-30=70"/>
+</div>)}
+];
+
+const cats=[{id:'num',t:'Number Sense',c:C.blue,i:'🔢'},{id:'alg',t:'Algebra',c:C.gold,i:'📝'},{id:'geo',t:'Geometry',c:C.green,i:'📐'},{id:'data',t:'Data',c:C.purple,i:'📊'}];
+
+function App(){
+const[view,setView]=useState('home');
+const[cat,setCat]=useState(null);
+const[topic,setTopic]=useState(null);
+const[done,setDone]=useState(()=>{try{return new Set(JSON.parse(localStorage.getItem('ged')||'[]'))}catch{return new Set()}});
+useEffect(()=>{localStorage.setItem('ged',JSON.stringify([...done]))},[done]);
+const prog=Math.round(done.size/38*100);
+
+if(view==='home')return(
+<div style={{minHeight:'100vh',background:C.bg,color:C.text}}>
+<header style={{padding:'16px 20px',borderBottom:`1px solid ${C.grid}`,background:C.bgD}}>
+<div style={{maxWidth:800,margin:'0 auto',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+<div style={{display:'flex',alignItems:'center',gap:10}}>
+<div style={{width:36,height:36,borderRadius:'50%',background:`linear-gradient(135deg,${C.blue},#cd853f)`,display:'flex',alignItems:'center',justifyContent:'center',fontSize:18,fontWeight:'bold',color:C.bgD}}>π</div>
+<div><h1 style={{margin:0,fontSize:18,fontFamily:'Georgia,serif',color:C.blue}}>GED Math Visualized</h1><p style={{margin:0,fontSize:10,color:C.muted}}>Plainfield Library</p></div>
+</div>
+<div style={{display:'flex',alignItems:'center',gap:10}}><span style={{color:C.muted,fontSize:12}}>{done.size}/38</span><div style={{width:80,height:5,background:C.grid,borderRadius:3}}><div style={{width:`${prog}%`,height:'100%',background:C.gold,borderRadius:3}}/></div></div>
+</div>
+</header>
+<main style={{maxWidth:800,margin:'0 auto',padding:'24px 16px'}}>
+<div style={{textAlign:'center',marginBottom:28}}>
+<h2 style={{fontFamily:'Georgia,serif',fontSize:24,color:C.cream,marginBottom:4}}>All 38 GED Math Topics</h2>
+<p style={{color:C.muted}}>Interactive lessons • Practice problems</p>
+</div>
+<div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(180px,1fr))',gap:14}}>
+{cats.map(c=>{const ct=topics.filter(t=>t.cat===c.id);const cd=ct.filter(t=>done.has(t.id)).length;return(
+<div key={c.id} onClick={()=>{setCat(c.id);setView('cat')}} style={{background:C.bgD,border:`1px solid ${C.grid}`,borderRadius:10,padding:16,cursor:'pointer',transition:'all 0.2s'}} onMouseEnter={e=>{e.currentTarget.style.borderColor=c.c;e.currentTarget.style.transform='translateY(-2px)'}} onMouseLeave={e=>{e.currentTarget.style.borderColor=C.grid;e.currentTarget.style.transform='none'}}>
+<div style={{fontSize:24,marginBottom:6}}>{c.i}</div>
+<h3 style={{color:c.c,fontFamily:'Georgia,serif',fontSize:16,margin:'0 0 4px 0'}}>{c.t}</h3>
+<p style={{color:C.muted,margin:0,fontSize:12}}>{ct.length} topics • {cd} done</p>
+<div style={{marginTop:8,height:3,background:C.grid,borderRadius:2}}><div style={{width:`${cd/ct.length*100}%`,height:'100%',background:c.c,borderRadius:2}}/></div>
+</div>)})}
+</div>
+</main>
+<footer style={{padding:'16px',textAlign:'center',color:C.muted,fontSize:11,borderTop:`1px solid ${C.grid}`}}>Inspired by 3Blue1Brown • Plainfield Public Library</footer>
+</div>);
+
+if(view==='cat'){const ct=cats.find(c=>c.id===cat);const ts=topics.filter(t=>t.cat===cat);return(
+<div style={{minHeight:'100vh',background:C.bg,color:C.text}}>
+<header style={{padding:'16px 20px',borderBottom:`1px solid ${C.grid}`,background:C.bgD}}>
+<div style={{maxWidth:800,margin:'0 auto'}}><button onClick={()=>setView('home')} style={{background:'none',border:'none',color:C.blue,cursor:'pointer',fontSize:13}}>← Back</button></div>
+</header>
+<main style={{maxWidth:800,margin:'0 auto',padding:'24px 16px'}}>
+<h2 style={{fontFamily:'Georgia,serif',fontSize:20,color:ct.c,marginBottom:16}}>{ct.i} {ct.t}</h2>
+<div style={{display:'flex',flexDirection:'column',gap:10}}>
+{ts.map(t=>(
+<div key={t.id} onClick={()=>{setTopic(t);setView('lesson')}} style={{background:C.bgD,border:`1px solid ${done.has(t.id)?t.c:C.grid}`,borderRadius:8,padding:14,cursor:'pointer',display:'flex',alignItems:'center',gap:12,transition:'all 0.2s'}} onMouseEnter={e=>{e.currentTarget.style.borderColor=t.c;e.currentTarget.style.transform='translateX(4px)'}} onMouseLeave={e=>{e.currentTarget.style.borderColor=done.has(t.id)?t.c:C.grid;e.currentTarget.style.transform='none'}}>
+<div style={{width:32,height:32,borderRadius:'50%',background:done.has(t.id)?t.c:C.grid,display:'flex',alignItems:'center',justifyContent:'center',color:done.has(t.id)?C.bgD:C.muted,fontSize:13,fontWeight:600,flexShrink:0}}>{done.has(t.id)?'✓':t.id}</div>
+<div style={{flex:1,fontSize:14}}>{t.t}</div>
+<div style={{color:t.c}}>→</div>
+</div>))}
+</div>
+</main>
+</div>);}
+
+if(view==='lesson'){const Comp=topic.comp;return(
+<div style={{minHeight:'100vh',background:C.bg,color:C.text}}>
+<header style={{padding:'16px 20px',borderBottom:`1px solid ${C.grid}`,background:C.bgD}}>
+<div style={{maxWidth:800,margin:'0 auto'}}><button onClick={()=>setView('cat')} style={{background:'none',border:'none',color:C.blue,cursor:'pointer',fontSize:13}}>← Back to {cats.find(c=>c.id===cat)?.t}</button></div>
+</header>
+<main style={{maxWidth:800,margin:'0 auto',padding:'24px 16px'}}>
+<h2 style={{fontFamily:'Georgia,serif',fontSize:20,color:topic.c,marginBottom:16}}>{topic.id}. {topic.t}</h2>
+<div style={{background:C.bgD,padding:18,borderRadius:10}}><Comp/></div>
+<div style={{marginTop:20,textAlign:'center'}}>
+{!done.has(topic.id)?<button onClick={()=>setDone(d=>new Set([...d,topic.id]))} style={{padding:'10px 28px',background:`linear-gradient(135deg,${C.green},${C.blue})`,border:'none',borderRadius:8,color:C.bgD,fontSize:15,fontWeight:600,cursor:'pointer'}}>✓ Mark Complete</button>:
+<div style={{padding:'10px 28px',background:C.bgD,border:`2px solid ${C.green}`,borderRadius:8,color:C.green,display:'inline-block'}}>✓ Completed!</div>}
+</div>
+</main>
+</div>);}
+
+return null;
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>
